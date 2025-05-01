@@ -1,0 +1,112 @@
+using UnityEngine;
+
+public class PickUp : MonoBehaviour
+{
+    public GameObject HoldPos;
+    public Camera playerCam;
+    private Transform holdPosition;
+    public GameObject holdObject { get; private set; }
+    public bool holding { get; private set; }
+    private GameObject targetObject;
+
+
+
+   public AudioManager audioManager;
+
+    private void Awake()
+    {
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
+    }
+
+    void Start()
+    {
+        holdPosition = HoldPos.transform;
+        if (playerCam == null)
+        {
+            playerCam = Camera.main;  // Otomatik olarak ana kamerayı atar
+            if (playerCam == null)
+                Debug.LogError("playerCam atanmadı!");
+        }
+    }
+
+    void Update()
+    {
+        Ray ray = new Ray(playerCam.transform.position, playerCam.transform.forward);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, 3f))
+        {
+            targetObject = hit.collider.gameObject;
+            
+        
+            if (!holding && targetObject.layer == LayerMask.NameToLayer("Pickable") && Input.GetKeyDown(KeyCode.F))
+            {
+                PickObject();
+                
+            }
+            else if (holding && Input.GetKeyDown(KeyCode.F) && !IsSlot(targetObject))
+            {
+                DropObject();
+                
+            }
+        }
+        else if (holding && Input.GetKeyDown(KeyCode.F))
+        {
+            DropObject();
+            
+        }
+
+        if (holding)
+        {
+            Vector3 offset = new Vector3(0.6f, 0f, 1f);
+            holdPosition.position = playerCam.transform.position + playerCam.transform.forward * offset.z + playerCam.transform.right * offset.x;
+            holdPosition.rotation = playerCam.transform.rotation;
+        }
+    }
+
+    bool IsSlot(GameObject obj)
+    {
+        return obj.CompareTag("SSlot1") || obj.CompareTag("SSlot2") || obj.CompareTag("SSlot3") || obj.CompareTag("SSlot4") || 
+               obj.CompareTag("CSlot1") || obj.CompareTag("CSlot2") || obj.CompareTag("CSlot3") || obj.CompareTag("CSlot4");
+    }
+
+    public GameObject GetTargetObject() => targetObject;
+
+    public void PickObject()
+    {
+        holdObject = targetObject;
+        holding = true;
+
+        holdObject.transform.position = holdPosition.position;
+        holdObject.transform.rotation = holdPosition.rotation;
+        holdObject.transform.SetParent(holdPosition);
+
+        Rigidbody rb = holdObject.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
+    }
+
+    public void DropObject()
+    {
+        holdObject.transform.SetParent(null);
+
+        Rigidbody rb = holdObject.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.useGravity = true;
+        }
+
+        holdObject = null;
+        holding = false;
+    }
+
+    public void ClearHold()
+    {
+        holdObject = null;
+        holding = false;
+    }
+}
