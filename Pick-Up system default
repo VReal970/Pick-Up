@@ -1,0 +1,98 @@
+using UnityEngine;
+
+public class PickUp: MonoBehaviour
+{
+    public Camera playerCam;  // Oyuncunun kamerasi (manuel olarak atanacak)
+    public float pickupRange = 3f;  // Raycast'in mesafesi
+    public KeyCode pickUpKey = KeyCode.F;  // Pickup tuşu
+    public KeyCode dropKey = KeyCode.G;  // Drop tuşu (Nesneyi bırakma)
+
+    private GameObject targetObject;  // Seçilen nesne
+    private GameObject heldObject;  // Tutuğumuz nesne
+
+     public GameObject holdObject; // Tutulan nesne
+    public bool holding; // Nesne tutma durumu
+
+    // Nesneyi almak için kullanılacak metod
+    public GameObject GetTargetObject()
+    {
+        return holdObject; // Tutulan nesneyi döndürür
+    }
+
+    // Nesneyi bırakmak için kullanılacak metod
+    public void ClearHold()
+    {
+        holding = false;
+        holdObject = null;
+    }
+
+    void Start()
+    {
+        // playerCam manuel olarak atanmamışsa hata mesajı verilecek
+        if (playerCam == null)
+        {
+            Debug.LogError("Lütfen playerCam değişkenine bir kamera atayın!");
+        }
+    }
+
+    void Update()
+    {
+        // Raycast gönderme
+        Ray ray = new Ray(playerCam.transform.position, playerCam.transform.forward);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, pickupRange))
+        {
+            // "Pickable" tag'ine sahip nesneyi kontrol et
+            if (hit.collider.CompareTag("Pickable"))
+            {
+                targetObject = hit.collider.gameObject;
+                
+                // Eğer F tuşuna basıldıysa nesneyi al
+                if (Input.GetKeyDown(pickUpKey) && heldObject == null)
+                {
+                    PickUpObject();
+                }
+            }
+        }
+        else
+        {
+            targetObject = null;  // Eğer bir şey tespit edilmezse target'ı sıfırla
+        }
+
+        // Nesneyi bırakma
+        if (Input.GetKeyDown(dropKey) && heldObject != null)
+        {
+            DropObject();
+        }
+    }
+
+    void PickUpObject()
+    {
+        if (targetObject != null)
+        {
+            heldObject = targetObject;
+            heldObject.transform.SetParent(transform);  // Nesneyi oyuncuya bağla
+            heldObject.transform.localPosition = new Vector3(0, 0, 2);  // Nesneyi belirli bir pozisyonda tut
+            Rigidbody rb = heldObject.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;  // Nesneyi fiziksel simülasyondan çıkar
+            }
+        }
+    }
+
+    void DropObject()
+    {
+        if (heldObject != null)
+        {
+            heldObject.transform.SetParent(null);  // Nesneyi oyuncudan ayır
+            Rigidbody rb = heldObject.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = false;  // Nesneyi tekrar fiziksel simülasyona dahil et
+            }
+            heldObject = null;  // Tutulan nesneyi sıfırla
+        }
+    }
+}
